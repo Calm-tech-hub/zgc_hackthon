@@ -204,3 +204,6 @@ frontend/node_modules/
 # ARIA — TypeScript incremental build cache (machine-local, never commit)
 *.tsbuildinfo
 .env.dev
+
+# Graphify knowledge graph (per-dev, regenerable via 'graphify build .')
+graphify-out/
