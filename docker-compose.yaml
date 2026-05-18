@@ -1,19 +1,19 @@
-# ============================================================
-# ARIA — Production compose (Dokploy + Traefik + Let's Encrypt)
-# ============================================================
-# Services : timescaledb · migrate · 4 simulators · backend · frontend
-# Routing  : Traefik (external dokploy-network) — no host ports.
-# Required env vars : see .env.example
-# ============================================================
+# ============================================
+# ARIA — Docker Compose
+# Services: timescaledb, migrate (one-shot), simulator, backend, frontend
+# ============================================
 
 services:
   timescaledb:
     image: timescale/timescaledb:2.21.0-pg16
+    container_name: aria-timescaledb
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - aria_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -25,6 +25,7 @@ services:
 
   migrate:
     image: postgres:16-alpine
+    container_name: aria-migrate
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -41,10 +42,18 @@ services:
     restart: "no"
     networks: [aria]
 
-  # ── Simulators (one per monitored cell) ──────────────────────
+  # ── Simulators — one per monitored cell ───────────────────────────
+  # Four containers share the same image but each runs a different
+  # CELL_NAME + SIMULATOR_SCENARIO so live signal data flows on every
+  # tile in the Control Room grid (not just the Bottle Filler).
+  # The Bottle Labeler is intentionally excluded — it's the onboarding-
+  # wizard target and stays signal-less until the operator uploads the
+  # IOM PDF.
+
   simulator-filler:
     build:
       context: ./simulator
+    container_name: aria-sim-filler
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -64,6 +73,7 @@ services:
   simulator-source-pump:
     build:
       context: ./simulator
+    container_name: aria-sim-source-pump
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -83,6 +93,7 @@ services:
   simulator-uv:
     build:
       context: ./simulator
+    container_name: aria-sim-uv
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -102,6 +113,7 @@ services:
   simulator-capper:
     build:
       context: ./simulator
+    container_name: aria-sim-capper
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -118,10 +130,10 @@ services:
     restart: unless-stopped
     networks: [aria]
 
-  # ── Backend (FastAPI + 5 agents + MCP) ───────────────────────
   backend:
     build:
       context: ./backend
+    container_name: aria-backend
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -140,45 +152,55 @@ services:
       INVESTIGATOR_USE_MANAGED: ${INVESTIGATOR_USE_MANAGED:-false}
       ARIA_DEMO_ENABLED: ${ARIA_DEMO_ENABLED:-false}
       ARIA_MCP_PATH_SECRET: ${ARIA_MCP_PATH_SECRET}
-      ARIA_MCP_PUBLIC_URL: https://${BACKEND_HOST}/mcp/${ARIA_MCP_PATH_SECRET}/
-      CORS_ORIGINS: '["https://${FRONTEND_HOST}"]'
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
+      ARIA_MCP_PUBLIC_URL: ${ARIA_MCP_PUBLIC_URL:-}
+      # ARIA_MCP_URL is intentionally omitted: the internal MCP client
+      # derives it from ARIA_MCP_PATH_SECRET at startup. If the secret is
+      # unset or is a placeholder the backend refuses to start with a clear
+      # error message — set it with: openssl rand -hex 32
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000","http://localhost:8000"]'
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    # Dev: mount source so uvicorn --reload picks up edits without rebuilding the image.
+    volumes:
+      - ./backend:/app:ro
+    command:
+      ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     restart: unless-stopped
-    networks: [aria, dokploy-network]
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=dokploy-network"
-      - "traefik.http.routers.aria-backend.rule=Host(`${BACKEND_HOST}`)"
-      - "traefik.http.routers.aria-backend.entrypoints=websecure"
-      - "traefik.http.routers.aria-backend.tls=true"
-      - "traefik.http.routers.aria-backend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.aria-backend.loadbalancer.server.port=8000"
+    networks: [aria]
 
-  # ── Frontend (Vite, dev server in container) ─────────────────
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: aria-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN:-}
+    profiles:
+      - tunnel
+    depends_on:
+      - backend
+    networks: [aria]
+
   frontend:
     build:
       context: ./frontend
+    container_name: aria-frontend
     depends_on:
       - backend
     environment:
-      VITE_API_BASE_URL: https://${BACKEND_HOST}
-      VITE_API_URL: https://${BACKEND_HOST}
+      VITE_API_URL: http://backend:8000
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    # Dev: bind-mount source for hot reload (preserve container node_modules).
+    volumes:
+      - ./frontend:/app
+      - aria_frontend_node_modules:/app/node_modules
+    command: ["sh", "-lc", "npm install --no-audit --no-fund && npm run dev"]
     restart: unless-stopped
-    networks: [aria, dokploy-network]
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=dokploy-network"
-      - "traefik.http.routers.aria-front.rule=Host(`${FRONTEND_HOST}`)"
-      - "traefik.http.routers.aria-front.entrypoints=websecure"
-      - "traefik.http.routers.aria-front.tls=true"
-      - "traefik.http.routers.aria-front.tls.certresolver=letsencrypt"
-      - "traefik.http.services.aria-front.loadbalancer.server.port=5173"
+    networks: [aria]
 
 volumes:
   aria_pgdata:
+  aria_frontend_node_modules:
 
 networks:
   aria:
     driver: bridge
-  dokploy-network:
-    external: true
