@@ -22,6 +22,7 @@ from modules.kb.router import router as kb_router
 from modules.kpi.router import router as kpi_router
 from modules.logbook.router import router as logbook_router
 from modules.mapping.router import router as mapping_router
+from modules.masterfix.router import router as masterfix_router
 from modules.monitoring.router import router as monitoring_router
 from modules.shift.router import router as shift_router
 from modules.signal.router import router as signal_router
@@ -95,6 +96,7 @@ def create_app() -> FastAPI:
     app.include_router(kpi_router)
     app.include_router(monitoring_router)
     app.include_router(mapping_router)
+    app.include_router(masterfix_router)
     app.include_router(logbook_router)
     app.include_router(shift_router)
     app.include_router(work_order_router)

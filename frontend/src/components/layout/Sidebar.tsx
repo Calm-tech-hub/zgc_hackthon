@@ -41,34 +41,15 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
     {
-        id: "overview",
-        label: "Overview",
-        items: [{ to: "/control-room", label: "Dashboard", icon: Icons.Gauge }],
-    },
-    {
-        id: "monitor",
-        label: "Monitor",
+        id: "masterfix",
+        label: "MasterFix",
         items: [
-            { to: "/equipment", label: "Equipment", icon: Icons.CircleDot },
-            { to: "/anomalies", label: "Anomalies", icon: Icons.AlertTriangle },
-            { to: "/shifts", label: "Shifts", icon: Icons.Clock },
-            { to: "/logbook", label: "Logbook", icon: Icons.BookOpen },
-        ],
-    },
-    {
-        id: "act",
-        label: "Act",
-        items: [
-            { to: "/work-orders", label: "Work orders", icon: Icons.Wrench },
-            { to: "/onboarding", label: "Onboarding", icon: Icons.Upload },
-        ],
-    },
-    {
-        id: "agents",
-        label: "Agents",
-        items: [
-            { to: "/masterfix", label: "MasterFix", icon: Icons.GitBranch },
-            { to: "/workspace", label: "Workspace", icon: Icons.Sparkles },
+            { to: "/masterfix", label: "首页", icon: Icons.Gauge, exact: true },
+            { to: "/masterfix/work-orders", label: "工单管理", icon: Icons.Wrench },
+            { to: "/masterfix/skills", label: "Skill 管理", icon: Icons.GitBranch },
+            { to: "/masterfix/tools", label: "Tool 管理", icon: Icons.Cpu },
+            { to: "/masterfix/memory", label: "Memory 管理", icon: Icons.Database },
+            { to: "/masterfix/equipment", label: "设备管理", icon: Icons.CircleDot },
         ],
     },
 ];
@@ -126,14 +107,14 @@ function SidebarHeader({ collapsed }: { collapsed: boolean }) {
             ].join(" ")}
         >
             <NavLink
-                to="/control-room"
+                to="/masterfix"
                 className="inline-flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-                aria-label="ARIA — Control room"
+                aria-label="MasterFix — 首页"
             >
                 <AriaLogo size={20} />
                 {!collapsed && (
                     <span className="text-base font-semibold tracking-[-0.01em] text-sidebar-foreground">
-                        ARIA
+                        MasterFix
                     </span>
                 )}
             </NavLink>

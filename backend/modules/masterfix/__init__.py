@@ -1,0 +1,1 @@
+"""MasterFix demo management module."""

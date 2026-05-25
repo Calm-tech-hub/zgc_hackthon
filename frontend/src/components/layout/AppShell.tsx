@@ -18,6 +18,7 @@ import {
 import { DemoControlStrip } from "../../features/demo";
 import type { EquipmentSelection } from "../../lib/hierarchy";
 import { useLocalStorage } from "../../lib/useLocalStorage";
+import { Icons } from "../ui";
 import { pageTransition } from "../ui/motion";
 import { DRAWER_DEFAULT_WIDTH, DRAWER_MAX_WIDTH, DRAWER_MIN_WIDTH, Drawer } from "./Drawer";
 import { SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED, Sidebar } from "./Sidebar";
@@ -130,6 +131,9 @@ export function AppShell() {
     const sidebarWidth = safeSidebar.collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
 
     const location = useLocation();
+    const isMasterFix = location.pathname.startsWith("/masterfix");
+    const drawerVisible = !isMasterFix && safeDrawer.open;
+    const activeInspectorAgent = isMasterFix ? null : inspectorAgent;
     // Group sub-routes (e.g. /work-orders/:id) under their parent so
     // navigating between siblings doesn't always replay the full transition.
     const routeKey = location.pathname.split("/")[1] || "/";
@@ -143,22 +147,31 @@ export function AppShell() {
                     width: `calc(100% - ${sidebarWidth}px)`,
                 }}
             >
-                <TopBar
-                    selection={selection}
-                    onSelectionChange={setSelection}
-                    drawerOpen={safeDrawer.open}
-                    drawerControlsId={drawerId}
-                    onDrawerToggle={toggleDrawer}
-                    sidebarCollapsed={safeSidebar.collapsed}
-                    onSidebarToggle={toggleSidebar}
-                    kpiSlot={<KpiBar selection={selection} />}
-                    onConstellationToggle={() => setConstellationOpen((prev) => !prev)}
-                />
-                <AnomalyBanner />
+                {isMasterFix ? (
+                    <MasterFixTopBar
+                        sidebarCollapsed={safeSidebar.collapsed}
+                        onSidebarToggle={toggleSidebar}
+                    />
+                ) : (
+                    <>
+                        <TopBar
+                            selection={selection}
+                            onSelectionChange={setSelection}
+                            drawerOpen={safeDrawer.open}
+                            drawerControlsId={drawerId}
+                            onDrawerToggle={toggleDrawer}
+                            sidebarCollapsed={safeSidebar.collapsed}
+                            onSidebarToggle={toggleSidebar}
+                            kpiSlot={<KpiBar selection={selection} />}
+                            onConstellationToggle={() => setConstellationOpen((prev) => !prev)}
+                        />
+                        <AnomalyBanner />
+                    </>
+                )}
                 <div
                     className="grid min-h-0 flex-1"
                     style={{
-                        gridTemplateColumns: safeDrawer.open
+                        gridTemplateColumns: drawerVisible
                             ? `minmax(0, 1fr) ${safeDrawer.width}px`
                             : "minmax(0, 1fr) 0",
                         transition: `grid-template-columns var(--motion-base) var(--ease-out-soft)`,
@@ -168,7 +181,7 @@ export function AppShell() {
                         <div
                             className="min-h-0 flex-1 overflow-auto"
                             style={{
-                                paddingBottom: inspectorAgent ? INSPECTOR_HEIGHT : undefined,
+                                paddingBottom: activeInspectorAgent ? INSPECTOR_HEIGHT : undefined,
                                 transition:
                                     "padding-bottom var(--motion-base) var(--ease-out-soft)",
                             }}
@@ -190,7 +203,7 @@ export function AppShell() {
                     </main>
                     <Drawer
                         id={drawerId}
-                        open={safeDrawer.open}
+                        open={drawerVisible}
                         width={safeDrawer.width}
                         onWidthChange={setDrawerWidth}
                     >
@@ -213,3 +226,48 @@ export function AppShell() {
         </div>
     );
 }
+
+function MasterFixTopBar({
+    sidebarCollapsed,
+    onSidebarToggle,
+}: {
+    sidebarCollapsed: boolean;
+    onSidebarToggle: () => void;
+}) {
+    const SidebarIcon = sidebarCollapsed ? Icons.PanelLeftOpen : Icons.PanelLeftClose;
+
+    return (
+        <header className="sticky top-0 z-30 flex h-14 flex-none items-center gap-3 border-b border-sidebar-border/40 bg-sidebar pl-2 pr-4">
+            <button
+                type="button"
+                onClick={onSidebarToggle}
+                aria-label={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
+                aria-pressed={!sidebarCollapsed}
+                className={ChromeButton}
+            >
+                <SidebarIcon className="size-4" aria-hidden />
+            </button>
+            <div aria-hidden className="h-5 w-px bg-sidebar-border/60" />
+            <div className="min-w-0">
+                <div className="text-sm font-semibold text-sidebar-foreground">
+                    MasterFix 管理端
+                </div>
+                <div className="hidden text-xs text-sidebar-muted-foreground sm:block">
+                    工单、Skill、Tool 与维修知识统一治理
+                </div>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+                <span className="hidden rounded-md border border-sidebar-border bg-sidebar-accent px-2 py-1 text-xs text-sidebar-muted-foreground md:inline-flex">
+                    Demo workspace
+                </span>
+            </div>
+        </header>
+    );
+}
+
+const ChromeButton = [
+    "inline-flex h-8 w-8 flex-none items-center justify-center rounded-md",
+    "text-sidebar-muted-foreground transition-colors duration-150",
+    "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+].join(" ");

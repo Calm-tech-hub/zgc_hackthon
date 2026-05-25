@@ -42,6 +42,11 @@ export function AppRoutes() {
                 <Route path="/logbook" element={<LogbookPage />} />
                 <Route path="/shifts" element={<ShiftsPage />} />
                 <Route path="/masterfix" element={<MasterFixPage />} />
+                <Route path="/masterfix/work-orders" element={<MasterFixPage />} />
+                <Route path="/masterfix/skills" element={<MasterFixPage />} />
+                <Route path="/masterfix/tools" element={<MasterFixPage />} />
+                <Route path="/masterfix/memory" element={<MasterFixPage />} />
+                <Route path="/masterfix/equipment" element={<MasterFixPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/onboarding/:session_id" element={<OnboardingPage />} />
             </Route>

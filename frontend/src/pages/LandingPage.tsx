@@ -16,7 +16,7 @@
  *   7. Why it's exceptional (Opus 4.7 + sandbox + MCP)
  *   8. Footer
  *
- * Auth integration: signing in here redirects to `/control-room`; an
+ * Auth integration: signing in here redirects to `/masterfix`; an
  * already-authenticated visitor opening `/` is forwarded straight in.
  */
 
@@ -30,7 +30,7 @@ const DEV = import.meta.env.DEV;
 
 export default function LandingPage() {
     if (isAuthenticated()) {
-        return <Navigate to="/control-room" replace />;
+        return <Navigate to="/masterfix" replace />;
     }
     return (
         <div className="min-h-screen w-full bg-background text-foreground">
@@ -184,7 +184,7 @@ function SignInCard() {
         setError(null);
         try {
             await login(username, password);
-            navigate("/control-room", { replace: true });
+            navigate("/masterfix", { replace: true });
         } catch (err) {
             setError(err instanceof Error ? err.message : "Login failed");
         } finally {
