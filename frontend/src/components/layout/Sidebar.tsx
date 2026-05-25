@@ -66,7 +66,10 @@ const NAV_GROUPS: NavGroup[] = [
     {
         id: "agents",
         label: "Agents",
-        items: [{ to: "/workspace", label: "Workspace", icon: Icons.Sparkles }],
+        items: [
+            { to: "/masterfix", label: "MasterFix", icon: Icons.GitBranch },
+            { to: "/workspace", label: "Workspace", icon: Icons.Sparkles },
+        ],
     },
 ];
 

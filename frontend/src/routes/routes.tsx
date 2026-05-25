@@ -7,6 +7,7 @@ import {
     EquipmentPage,
     LandingPage,
     LogbookPage,
+    MasterFixPage,
     OnboardingPage,
     ShiftsPage,
     WorkspacePage,
@@ -40,6 +41,7 @@ export function AppRoutes() {
                 <Route path="/work-orders/:id" element={<WorkOrderDetail />} />
                 <Route path="/logbook" element={<LogbookPage />} />
                 <Route path="/shifts" element={<ShiftsPage />} />
+                <Route path="/masterfix" element={<MasterFixPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/onboarding/:session_id" element={<OnboardingPage />} />
             </Route>
